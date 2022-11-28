@@ -1,7 +1,8 @@
+import utils
 import asyncio
 from fastapi import FastAPI
 
-from routers import google
+from routers import google, imagemanip
 
 
 class RandomAPI(FastAPI):
@@ -14,7 +15,10 @@ class RandomAPI(FastAPI):
             loop=self.loop,
             redoc_url="/docs",
             docs_url=None,
+            on_startup=[utils.on_start_up],
+            on_shutdown=[utils.on_shutdown],
         )
 
 app = RandomAPI()
 app.include_router(google.router)
+app.include_router(imagemanip.router)

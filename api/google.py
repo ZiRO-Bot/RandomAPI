@@ -3,12 +3,11 @@ Web scrapper for google search
 """
 
 
-import asyncio
-import functools
 import re
 import urllib.parse
 from contextlib import suppress
 from typing import Any, List, Optional
+from utils import in_executor
 
 import aiohttp
 import bs4
@@ -17,21 +16,6 @@ import bs4
 RESULT_STATS_RE = re.compile(r"((?:\d+(?:,)?)+).*(?:\((?:((?:\d+)(?:\.)?(?:\d+)?) (\S+))\))")
 
 
-# Stolen from stella
-# https://github.com/InterStella0/stella_bot/blob/master/utils/decorators.py#L70-L79
-def in_executor(loop=None):
-    """Makes a sync blocking function unblocking"""
-    loop = loop or asyncio.get_event_loop()
-
-    def inner_function(func):
-        @functools.wraps(func)
-        def function(*args, **kwargs):
-            partial = functools.partial(func, *args, **kwargs)
-            return loop.run_in_executor(None, partial)
-
-        return function
-
-    return inner_function
 
 
 class SearchResult:
