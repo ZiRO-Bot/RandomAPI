@@ -13,7 +13,7 @@ import aiohttp
 import bs4
 
 
-RESULT_STATS_RE = re.compile(r"((?:\d+,)+).*(?:\(((?:\d)+(?:.)?(?:\d)+ seconds)\))")
+RESULT_STATS_RE = re.compile(r"((?:\d+(?:,)?)+).*(?:\((?:((?:\d+)(?:\.)?(?:\d+)?) (\S+))\))")
 
 
 # Stolen from stella
@@ -112,12 +112,16 @@ class Google:
             searchStats = {}
             _searchStats = RESULT_STATS_RE.findall(soup.find(attrs={"id": "result-stats"}).text)[0]  # type: ignore # pyright really don't like bs4
             searchStats["count"] = int(_searchStats[0].replace(",", ""))
-            searchStats["duration"] = _searchStats[1]
-        except (AttributeError, IndexError):
-            return None
+            searchStats["duration"] = {
+                "value": float(_searchStats[1]),
+                "unit": _searchStats[2]
+            }
+        except (AttributeError, IndexError) as e:
+            print(e)
+            return {}
 
         # normal results
-        _results = soup.find("div", id="search").find("div", id= "rso")
+        _results = soup.find("div", id="search").find("div", id="rso")
         results = _results.select("div.g[data-hveid], div[data-hveid] > .g")  # type: ignore
         webRes: Optional[List[NormalResult]] = None
         specialRes: Optional[SpecialResult] = None
@@ -207,7 +211,7 @@ class Google:
                 infoTitle = key.text
                 infoContent = value.text
                 if infoTitle and infoContent:
-                    formattedInfo.append(infoTitle + infoContent)
+                    formattedInfo.append(f"{infoTitle.rstrip()} {infoContent}")
 
             # A complementary result always have title and subtitle
             if subtitle and title:
