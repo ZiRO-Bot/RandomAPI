@@ -6,6 +6,7 @@ Web scrapper for google search
 import asyncio
 import functools
 import re
+import urllib.parse
 from contextlib import suppress
 from typing import Any, List, Optional
 
@@ -147,9 +148,10 @@ class Google:
                         if res not in webRes:
                             webRes.append(res.toJson())
 
-        _specialRes = _results.find("div", class_="obcontainer")
-        isBlock = False
-        if not _specialRes:
+        try:
+            _specialRes = _results.select("div.obcontainer")[0]
+            isBlock = False
+        except IndexError:
             _specialRes = _results.find("block-component")
             isBlock = True
         if _specialRes and not isBlock:
@@ -176,6 +178,16 @@ class Google:
                 # Last updated
                 formattedContent["last_updated"] = _contents.find_next_sibling().span.text[:-3]
                 specialRes = SpecialResult(type, formattedContent)
+
+            elif type == "Calculator result":
+                result = _specialRes.find("div", role="presentation")
+                ops = result.parent.find_previous_sibling().find("span").text
+                content = {
+                    "operation": ops.strip(),
+                    "result": result.span.text.strip(),
+                }
+                specialRes = SpecialResult(type, content)
+
         elif _specialRes and isBlock:
             block = _specialRes.find("div", {"data-attrid": True})
             if not block:
@@ -243,7 +255,7 @@ class Google:
             await self.generateSession()
 
         async with self.session.get(  # type: ignore
-            self._fmt.format(query=query, safe=safe, num=numberOfResult, hl=languageCode),
+            self._fmt.format(query=urllib.parse.quote(query), safe=safe, num=numberOfResult, hl=languageCode),
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
