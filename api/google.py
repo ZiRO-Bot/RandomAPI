@@ -61,7 +61,7 @@ class SpecialResult(SearchResult):
 
 
 class ComplementaryResult(SearchResult):
-    def __init__(self, title: str, subtitle: str, description: Optional[str], info: List[tuple]) -> None:
+    def __init__(self, title: str, subtitle: str, description: str | None, info: List[tuple]) -> None:
         super().__init__("https://google.com", title)
         self.subtitle: str = subtitle
         self.description: str | None = description
@@ -140,37 +140,53 @@ class Google:
             isBlock = True
         if _specialRes and not isBlock:
             # Special result such as Currency converter, Maps, etc
-            type = _specialRes.find("h2").text  # type: ignore
+            try:
+                type = _specialRes.find("h2").text  # type: ignore
 
-            if type == "Currency converter":
-                _contents = _specialRes.find("div", {"data-exchange-rate": True})  # type: ignore
-                contents = _contents.contents
-                formattedContent = {}
+                if type == "Currency converter":
+                    _contents = _specialRes.find("div", {"data-exchange-rate": True})  # type: ignore
+                    contents = _contents.contents
+                    formattedContent = {}
 
-                # Currency stuff
-                _target = contents[0]
-                formattedContent["from"] = {
-                    "currency": _target.find("span", {"data-name": True})["data-name"],
-                    "value": _target.span.text,
-                }
-                _dest = contents[1]
-                formattedContent["to"] = {
-                    "currency": _dest.find("span", {"data-name": True})["data-name"],
-                    "value": _dest.find("span", {"data-value": True})["data-value"],
-                }
+                    # Currency stuff
+                    _target = contents[0]
+                    formattedContent["from"] = {
+                        "currency": _target.find("span", {"data-name": True})["data-name"],
+                        "value": _target.span.text,
+                    }
+                    _dest = contents[1]
+                    formattedContent["to"] = {
+                        "currency": _dest.find("span", {"data-name": True})["data-name"],
+                        "value": _dest.find("span", {"data-value": True})["data-value"],
+                    }
 
-                # Last updated
-                formattedContent["last_updated"] = _contents.find_next_sibling().span.text[:-3]
-                specialRes = SpecialResult(type, formattedContent)
+                    # Last updated
+                    formattedContent["last_updated"] = _contents.find_next_sibling().span.text[:-3]
+                    specialRes = SpecialResult(type, formattedContent)
 
-            elif type == "Calculator result":
-                result = _specialRes.find("div", role="presentation")
-                ops = result.parent.find_previous_sibling().find("span").text
-                content = {
-                    "operation": ops.strip(),
-                    "result": result.span.text.strip(),
-                }
-                specialRes = SpecialResult(type, content)
+                elif type == "Calculator result":
+                    result = _specialRes.find("div", role="presentation")
+                    ops = result.parent.find_previous_sibling().find("span").text
+                    content = {
+                        "operation": ops.strip(),
+                        "result": result.span.text.strip(),
+                    }
+                    specialRes = SpecialResult(type, content)
+            except AttributeError:
+                # Check if it's a unit converter
+                if _specialRes.find("select").find("option", value="Energy"):
+                    result = _specialRes.find_all("input")
+                    content = {
+                        "from": {
+                            "unit": result[0].find_next_sibling().find("option", selected=True).text,
+                            "value": result[0]["value"]
+                        },
+                        "to": {
+                            "unit": result[1].find_next_sibling().find("option", selected=True).text,
+                            "value": result[1]["value"]
+                        }
+                    }
+                    specialRes = SpecialResult("Unit converter", content)
 
         elif _specialRes and isBlock:
             block = _specialRes.find("div", {"data-attrid": True})
@@ -179,7 +195,6 @@ class Google:
             elif block["data-attrid"] == "dc:/legacy:location_statistical_region_population":
                 content = block.find("div", role="heading").text
                 specialRes = SpecialResult(block.find_previous_sibling().find("div", role="heading").text.replace("/", " / "), content)
-
 
         # Complementary results
         complementaryRes = soup.find("div", {"id": "rhs", "data-hveid": True})
@@ -211,7 +226,7 @@ class Google:
 
             # A complementary result always have title and subtitle
             if subtitle and title:
-                complementaryRes = ComplementaryResult(title, subtitle, desc, formattedInfo)
+                complementaryRes: ComplementaryResult | None = ComplementaryResult(title, subtitle, desc, formattedInfo)
             else:
                 complementaryRes = None
 
