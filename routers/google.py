@@ -1,9 +1,8 @@
-from utils import SingletonAiohttp
 from fastapi import APIRouter
 from api.google import Google
 
 
-google = Google(session=SingletonAiohttp.get_aiohttp_client())
+google = Google()
 router = APIRouter()
 
 @router.get("/search")

@@ -81,12 +81,8 @@ class ComplementaryResult(SearchResult):
 
 
 class Google:
-    def __init__(self, session: Optional[aiohttp.ClientSession] = None) -> None:
-        self.session: Optional[aiohttp.ClientSession] = session
+    def __init__(self) -> None:
         self._fmt: str = "https://www.google.com/search?q={query}&safe={safe}&num={num}&hl={hl}"
-
-    async def generateSession(self) -> None:
-        self.session = aiohttp.ClientSession()
 
     @in_executor()
     def parseResults(self, page: str) -> Optional[dict]:
@@ -250,17 +246,16 @@ class Google:
         languageCode: str = "en",
     ):
         safe: str = "active" if safeSearch else "images"
-        if not self.session:
-            await self.generateSession()
 
-        async with self.session.get(  # type: ignore
-            self._fmt.format(query=urllib.parse.quote(query), safe=safe, num=numberOfResult, hl=languageCode),
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
-                )
-            },
-        ) as resp:
-            html = await resp.text()
-            return await self.parseResults(html)  # type: ignore # executor makes it awaitable
+        async with aiohttp.ClientSession() as session:
+            async with session.get(  # type: ignore
+                self._fmt.format(query=urllib.parse.quote(query), safe=safe, num=numberOfResult, hl=languageCode),
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                        "(KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
+                    )
+                },
+            ) as resp:
+                html = await resp.text()
+                return await self.parseResults(html)  # type: ignore # executor makes it awaitable
