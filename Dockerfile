@@ -1,0 +1,13 @@
+FROM python:3.10.9-slim
+
+LABEL org.opencontainers.image.source="https://github.com/ZiRO-Bot/RandomAPI"
+LABEL org.opencontainers.image.description="API with random content inside"
+LABEL org.opencontainers.image.licenses=Unlicense
+
+WORKDIR /app
+
+COPY . .
+RUN python -m pip install ./requirements.txt
+
+EXPOSE 2264
+CMD ["python", "main.py"]
