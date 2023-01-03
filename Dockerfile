@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.licenses=Unlicense
 WORKDIR /app
 
 COPY . .
-RUN python -m pip install ./requirements.txt
+RUN python -m pip install -r ./requirements.txt
 
 EXPOSE 2264
 CMD ["python", "main.py"]
