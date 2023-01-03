@@ -1,6 +1,6 @@
+import aiohttp
 from io import BytesIO
 from api import imagemanip
-from utils import SingletonAiohttp
 from fastapi import APIRouter, Response
 
 
@@ -12,9 +12,10 @@ DISABLED_SYMBOLS = ("false", "f", "no", "n", "off", "0")
 
 
 async def manipulate(img_url: str, manip_type: str, **kwargs) -> BytesIO:
-    async with SingletonAiohttp.get_aiohttp_client().get(str(img_url)) as resp:
-        img_bytes = await resp.read()
-        return getattr(imagemanip, manip_type)(img_bytes, **kwargs)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(str(img_url)) as resp:
+            img_bytes = await resp.read()
+            return getattr(imagemanip, manip_type)(img_bytes, **kwargs)
 
 
 @router.get("/invert")
