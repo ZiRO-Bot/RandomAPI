@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.google import Google
+from internal.google import Google
 
 
 google = Google()

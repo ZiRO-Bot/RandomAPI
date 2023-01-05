@@ -1,6 +1,6 @@
 import aiohttp
 from io import BytesIO
-from api import imagemanip
+from internal import imagemanip
 from fastapi import APIRouter, Response
 
 
