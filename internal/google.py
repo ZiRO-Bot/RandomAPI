@@ -6,7 +6,7 @@ Web scrapper for google search
 import re
 import urllib.parse
 from contextlib import suppress
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from utils import in_executor
 
 import aiohttp
@@ -61,10 +61,10 @@ class SpecialResult(SearchResult):
 
 
 class ComplementaryResult(SearchResult):
-    def __init__(self, title: str, subtitle: str, description: str | None, info: List[tuple]) -> None:
+    def __init__(self, title: str, subtitle: str, description: Union[str, None], info: List[tuple]) -> None:
         super().__init__("https://google.com", title)
         self.subtitle: str = subtitle
-        self.description: str | None = description
+        self.description: Union[str, None] = description
         self.info: list[tuple] = info
 
     def toJson(self) -> dict[str, Any]:
@@ -222,7 +222,7 @@ class Google:
 
             # A complementary result always have title and subtitle
             if subtitle and title:
-                complementaryRes: ComplementaryResult | None = ComplementaryResult(title, subtitle, desc, formattedInfo)
+                complementaryRes: Union[ComplementaryResult, None] = ComplementaryResult(title, subtitle, desc, formattedInfo)
             else:
                 complementaryRes = None
 
